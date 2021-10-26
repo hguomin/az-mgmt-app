@@ -1,9 +1,10 @@
 # az-mgmt-app
 Azure resources management application by Python.
 
-## Install requirements
+## Install and run
 ```bash
 pip install -r requirements.txt
+python main.py
 ```
 
 ## Authentication:
