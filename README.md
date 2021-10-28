@@ -1,7 +1,7 @@
 # az-mgmt-app
 Azure resources management application by Python.
 
-This application pick up the arm templates in the `templates` folder and deployment the Azure resources with Azure Management API automatically, it support both Azure global and China.
+This application pick up the arm templates in the `templates` folder and deploy the Azure resources with Azure Management API automatically, it support both Azure global and China.
 
 ## Install and run
 1. Make settings in `settings.yaml`
