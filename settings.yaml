@@ -7,7 +7,8 @@ azure:
     location: chinaeast2
 
 project:
-  name: icduser02 # length must within 10
+  name: proj01,proj02,proj03  #each length must within 10
+  template: [arm template file in ./templates folder, ex: iot-sln-s2-no-cosmosdb.json]
   admin:
     username: iotadmin
     password: [your password]

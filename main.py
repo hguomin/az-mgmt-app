@@ -38,28 +38,6 @@ def main():
     settings = read_yaml(os.path.join(app_dir, "settings.yaml"))
 
     azure_settings = settings["azure"]
-    proj_settings = settings["project"]
-
-    resource_group = proj_settings["name"] + "-rg"
-    parameters = {
-        "projectName": { 
-            "value": proj_settings["name"] 
-        },
-        "adminUserName": {
-            "value": proj_settings["admin"]["username"]
-        },
-        "adminPassword": {
-            "value": proj_settings["admin"]["password"]
-        }
-    }
-
-    template_path = os.path.join(os.path.dirname(__file__), "templates", "iot-sln.json")
-    template = ""
-    with open(template_path, "r", encoding="utf-8") as fd:
-        template = json.load(fd)
-
-    deployment_properties = DeploymentProperties(mode=DeploymentMode.incremental, template=template, parameters=parameters) 
-
     credential = ClientSecretCredential(tenant_id=azure_settings["tenant_id"], 
                                         client_id=azure_settings["client_id"], 
                                         client_secret=azure_settings["client_secret"], 
@@ -70,28 +48,51 @@ def main():
                                                 base_url=CLOUD.endpoints.resource_manager,
                                                 credential_scopes=[CLOUD.endpoints.resource_manager + "/.default"])
 
-    rg_result = resource_client.resource_groups.create_or_update(resource_group, { "location": azure_settings["deployment"]["location"] })
+    proj_settings = settings["project"]
+    template_path = os.path.join(os.path.dirname(__file__), "templates", proj_settings["template"])
+    template = ""
+    with open(template_path, "r", encoding="utf-8") as fd:
+        template = json.load(fd)
 
-    print(f"Provisioned resource group {rg_result.name} in the {rg_result.location} region")
+    proj_names = proj_settings["name"].split(",")
+    for project in proj_names:
+        project = project.strip()
+        resource_group = project + "-rg"
+        parameters = {
+            "projectName": { 
+                "value": project 
+            },
+            "adminUserName": {
+                "value": proj_settings["admin"]["username"]
+            },
+            "adminPassword": {
+                "value": proj_settings["admin"]["password"]
+            }
+        }
+        deployment_properties = DeploymentProperties(mode=DeploymentMode.incremental, template=template, parameters=parameters) 
 
-    try:
-        deployment_async_operation = resource_client.deployments.begin_create_or_update(resource_group, "az-iot-deployment", Deployment(properties=deployment_properties))
-        # deployment_async_operation.wait()
-        print("Deployment is started.")
-        second = 1
-        
-        while not deployment_async_operation.done():
-            print(f"{second}", end='.')
-            time.sleep(1)
-            second = second + 1
-        
-        print("\nDeploymnet is finished.")
+        rg_result = resource_client.resource_groups.create_or_update(resource_group, { "location": azure_settings["deployment"]["location"] })
 
-    except Exception as e:
-        print(f"Error occured: {e}")
+        print(f"Provisioned resource group {rg_result.name} in the {rg_result.location} region")
 
-        print(f"\nDeleting: {resource_group}")
-        resource_client.resource_groups.begin_delete(resource_group).result()
+        try:
+            deployment_async_operation = resource_client.deployments.begin_create_or_update(resource_group, f"az-iot-deployment-{project}", Deployment(properties=deployment_properties))
+            # deployment_async_operation.wait()
+            print(f"Deployment for {project} is started.")
+            second = 1
+            
+            while not deployment_async_operation.done():
+                print(f"{second}", end='.')
+                time.sleep(1)
+                second = second + 1
+            
+            print(f"\nDeployment for {project} is finished.")
+
+        except Exception as e:
+            print(f"Error occured: {e}")
+
+            print(f"\nDeleting: {resource_group}")
+            resource_client.resource_groups.begin_delete(resource_group).result()
         
 if __name__=="__main__":
     main()
